@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Memory Card Game for Kids</title>
+  <style>
+    body {
+      font-family: "Comic Sans MS", cursive, sans-serif;
+      text-align: center;
+      background-color: #b3e5fc;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #ff6f00;
+      margin-bottom: 10px;
+      font-size: 2em;
+      text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      max-width: 400px;
+      margin: 0 auto 20px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      font-size: 1.2em;
+      border: 3px solid #4fc3f7;
+    }
+    
+    .game-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      height: 110px;
+      background-color: #ff9800;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.4s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      border: 4px solid #ffd54f;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px) rotate(2deg);
+    }
+    
+    .card-content {
+      font-size: 3.5em;
+      display: none;
+      width: 100%;
+      height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .card.flipped .card-content {
+      display: flex;
+    }
+    
+    .card.flipped {
+      background-color: #fff;
+      transform: rotateY(180deg);
+    }
+    
+    .card.matched {
+      background-color: #76ff03;
+      cursor: default;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { border-color: #76ff03; }
+      50% { border-color: #b2ff59; }
+      100% { border-color: #76ff03; }
+    }
+    
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #f50057;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 1.2em;
+      font-family: "Comic Sans MS", cursive, sans-serif;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #ff4081;
+      transform: scale(1.05);
+    }
+    
+    .win-message {
+      margin-top: 20px;
+      font-size: 1.8em;
+      color: #f50057;
+      font-weight: bold;
+      display: none;
+      text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+    }
+    
+    .theme-info {
+      margin-top: 15px;
+      padding: 8px;
+      background-color: rgba(255, 255, 255, 0.7);
+      border-radius: 10px;
+      font-size: 1.1em;
+      color: #0277bd;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <h1>Memory Game for Super Kids!</h1>
+  <div class="stats">
+    <div>Tries: <span id="moves">0</span></div>
+    <div>Found: <span id="matches">0</span> / 8</div>
+  </div>
+  <div class="theme-info" id="theme-info">Theme: Loading...</div>
+  <div class="game-container" id="game-board"></div>
+  <div class="win-message" id="win-message">HOORAY! You're Amazing!</div>
+  <button id="reset-button">Play Again!</button>
+
+  <script>
+    // Large library of kid-friendly emoji sets organized by themes
+    const emojiLibrary = {
+      "Vehicles": ['🚗', '🚒', '🚀', '🚁', '🚂', '🏎️', '🚌', '🚜'],
+      "Animals": ['🦁', '🐘', '🦖', '🐬', '🦊', '🐵', '🦁', '🐶'],
+      "Dinosaurs": ['🦖', '🦕', '🦴', '🦎', '🦅', '🐊', '🦕', '🦖'],
+      "Space": ['🚀', '🛸', '👨‍🚀', '🪐', '🌎', '🌟', '☄️', '🌙'],
+      "Sports": ['⚽', '🏀', '🏈', '⚾', '🎾', '🏆', '🏊', '🚴'],
+      "Superheroes": ['🦸‍♂️', '🦹‍♂️', '🦸‍♀️', '🥷', '👑', '🔨', '🛡️', '🧪'],
+      "Construction": ['🏗️', '🚜', '🚧', '🚚', '⛏️', '🔨', '🪚', '🔧'],
+      "Ocean": ['🐬', '🦈', '🐠', '🐙', '🦀', '⚓', '🚢', '🏝️'],
+      "Robots": ['🤖', '🦾', '👾', '🔋', '💻', '📱', '🎮', '📡'],
+      "Monsters": ['👹', '👾', '👻', '👽', '🤖', '🧟', '🧌', '🐲'],
+      "Food": ['🍕', '🍔', '🍦', '🍭', '🍫', '🍪', '🍎', '🍌'],
+      "Jungle": ['🦁', '🐵', '🦒', '🐘', '🦍', '🐅', '🌴', '🍌'],
+      "Farm": ['🐮', '🐷', '🐔', '🐑', '🐴', '🚜', '🌾', '🥕'],
+      "Weather": ['☀️', '⛅', '🌧️', '⛈️', '❄️', '🌪️', '🌈', '☂️'],
+      "Insects": ['🐝', '🐞', '🦋', '🐜', '🕷️', '🐛', '🦟', '🦗'],
+      "Fantasy": ['🧙‍♂️', '🧚', '🐉', '🦄', '🧜‍♂️', '🏰', '⚔️', '🧝‍♂️'],
+      "Tools": ['🔨', '🪚', '🔧', '🪛', '🔩', '⚙️', '🧰', '🪓'],
+      "Fruits": ['🍎', '🍌', '🍇', '🍊', '🍓', '🍉', '🍑', '🍍'],
+      "Adventure": ['🏕️', '🧗‍♂️', '🏞️', '🗺️', '🧭', '🏔️', '⛺', '🌋'],
+      "Toys": ['🧸', '🪀', '🎮', '🪁', '🧩', '🎲', '🚂', '🎯']
+    };
+    
+    const themeKeys = Object.keys(emojiLibrary);
+    const themeInfo = document.getElementById('theme-info');
+    const gameBoard = document.getElementById('game-board');
+    const resetButton = document.getElementById('reset-button');
+    const movesDisplay = document.getElementById('moves');
+    const matchesDisplay = document.getElementById('matches');
+    const winMessage = document.getElementById('win-message');
+    
+    let cards = [];
+    let flippedCards = [];
+    let moves = 0;
+    let matches = 0;
+    let canFlip = true;
+    let usedThemes = []; // Keep track of recently used themes
+    let currentTheme = "";
+    
+    function getRandomTheme() {
+      // Filter out recently used themes
+      const availableThemes = themeKeys.filter(theme => !usedThemes.includes(theme));
+      
+      // If all themes have been used, reset the usedThemes array
+      if (availableThemes.length === 0) {
+        usedThemes = [];
+        return getRandomTheme();
+      }
+      
+      // Get a random theme from available ones
+      const randomIndex = Math.floor(Math.random() * availableThemes.length);
+      const selectedTheme = availableThemes[randomIndex];
+      
+      // Add to used themes and keep track of last 2
+      usedThemes.push(selectedTheme);
+      if (usedThemes.length > 2) {
+        usedThemes.shift();
+      }
+      
+      return selectedTheme;
+    }
+    
+    function createCards() {
+      // Select a random theme that wasn't used in the last 2 games
+      currentTheme = getRandomTheme();
+      themeInfo.textContent = `Theme: ${currentTheme}`;
+      
+      // Get emojis for the selected theme
+      const themeEmojis = emojiLibrary[currentTheme];
+      
+      // Create pairs of cards with matching emojis
+      const cardValues = [...themeEmojis, ...themeEmojis];
+      
+      // Clear the game board
+      gameBoard.innerHTML = '';
+      
+      // Shuffle the cards
+      cardValues.sort(() => Math.random() - 0.5);
+      
+      // Create card elements
+      cards = cardValues.map((emoji, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.index = index;
+        
+        const cardContent = document.createElement('div');
+        cardContent.className = 'card-content';
+        cardContent.textContent = emoji;
+        
+        card.appendChild(cardContent);
+        gameBoard.appendChild(card);
+        
+        card.addEventListener('click', () => flipCard(card, emoji, index));
+        
+        return { element: card, value: emoji, index };
+      });
+    }
+    
+    function flipCard(cardElement, value, index) {
+      // Don't allow flipping if game is locked or card is already flipped/matched
+      if (!canFlip || cardElement.classList.contains('flipped') || cardElement.classList.contains('matched')) {
+        return;
+      }
+      
+      // Flip the card
+      cardElement.classList.add('flipped');
+      flippedCards.push({ element: cardElement, value, index });
+      
+      // Check if we have flipped two cards
+      if (flippedCards.length === 2) {
+        moves++;
+        movesDisplay.textContent = moves;
+        canFlip = false;
+        
+        // Check if the cards match
+        if (flippedCards[0].value === flippedCards[1].value) {
+          // Match found
+          setTimeout(() => {
+            flippedCards.forEach(card => {
+              card.element.classList.add('matched');
+            });
+            flippedCards = [];
+            matches++;
+            matchesDisplay.textContent = matches;
+            canFlip = true;
+            
+            // Check if all matches found
+            if (matches === 8) {
+              winMessage.style.display = 'block';
+            }
+          }, 500);
+        } else {
+          // No match
+          setTimeout(() => {
+            flippedCards.forEach(card => {
+              card.element.classList.remove('flipped');
+            });
+            flippedCards = [];
+            canFlip = true;
+          }, 1200); // Slightly longer to give kids more time to see
+        }
+      }
+    }
+    
+    function resetGame() {
+      flippedCards = [];
+      moves = 0;
+      matches = 0;
+      canFlip = true;
+      movesDisplay.textContent = moves;
+      matchesDisplay.textContent = matches;
+      winMessage.style.display = 'none';
+      createCards();
+    }
+    
+    // Initialize the game
+    resetButton.addEventListener('click', resetGame);
+    resetGame();
+  </script>
+</body>
+</html>
